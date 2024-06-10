@@ -1,8 +1,6 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
-
 import { Player } from '../../../../types';
-
 import { getOrdinalSuffix, throttle } from '../../utils';
 
 const CANVAS_WIDTH = 400;

@@ -17,6 +17,7 @@ const io = new Server(httpServer, {
 });
 
 const players: { [id: string]: Player } = {};
+const requiredPlayerCount = 2; // Set required player count for the race to start
 
 const calculateLeaderboard = () => {
   return Object.values(players).sort((a, b) => a.y - b.y);
@@ -36,6 +37,11 @@ io.on('connection', (socket) => {
 
     io.emit('playersUpdate', Object.values(players));
     io.emit('leaderboardUpdate', calculateLeaderboard());
+
+    // Check if the required number of players has been reached
+    if (Object.keys(players).length === requiredPlayerCount) {
+      io.emit('raceReady');
+    }
   });
 
   socket.on('playerMove', (data: { dx: number; dy: number }) => {
