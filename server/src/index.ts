@@ -2,7 +2,6 @@ import express, { Express, Request, Response } from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import dotenv from 'dotenv';
-
 import { Player } from '../../types';
 
 dotenv.config();
@@ -19,6 +18,10 @@ const io = new Server(httpServer, {
 
 const players: { [id: string]: Player } = {};
 
+const calculateLeaderboard = () => {
+  return Object.values(players).sort((a, b) => a.y - b.y);
+};
+
 io.on('connection', (socket) => {
   console.log(`a user connected: ${socket.id}`);
 
@@ -29,9 +32,10 @@ io.on('connection', (socket) => {
       x: 190,
       y: 390,
       name,
-      score: 0,
     };
+
     io.emit('playersUpdate', Object.values(players));
+    io.emit('leaderboardUpdate', calculateLeaderboard());
   });
 
   socket.on('playerMove', (data: { dx: number; dy: number }) => {
@@ -39,19 +43,19 @@ io.on('connection', (socket) => {
     if (player) {
       player.x += data.dx;
       player.y += data.dy;
+
       io.emit('playersUpdate', Object.values(players));
+      io.emit('leaderboardUpdate', calculateLeaderboard());
     }
   });
 
   socket.on('disconnect', () => {
     console.log(`user disconnected: ${socket.id}`);
     delete players[socket.id];
-    io.emit('playersUpdate', Object.values(players));
-  });
-});
 
-app.get('/', (req: Request, res: Response) => {
-  res.send('Express + TypeScript Server');
+    io.emit('playersUpdate', Object.values(players));
+    io.emit('leaderboardUpdate', calculateLeaderboard());
+  });
 });
 
 httpServer.listen(port, () => {
