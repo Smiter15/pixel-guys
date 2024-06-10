@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useCallback } from 'react';
 import { io, Socket } from 'socket.io-client';
 
 import Leaderboard from './components/Leaderboard';
@@ -40,9 +40,9 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const joinGame = () => {
+  const joinGame = useCallback(() => {
     socket.emit('playerJoin', name);
-  };
+  }, [name]);
 
   return (
     <div className="App">
