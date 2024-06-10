@@ -1,0 +1,18 @@
+# Node.js dependencies
+/server/node_modules
+/client/node_modules
+
+# Build output
+/server/dist
+/client/build
+
+# Environment variables
+/server/.env
+/client/.env.local
+/client/.env.development.local
+/client/.env.test.local
+/client/.env.production.local
+
+# Editor settings and temporary files
+.DS_Store
+.vscode/
