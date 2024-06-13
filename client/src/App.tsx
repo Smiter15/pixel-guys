@@ -67,11 +67,7 @@ const App: React.FC = () => {
   };
 
   const joinGame = () => {
-    if (name.trim()) {
-      socket.emit('playerJoin', name);
-    } else {
-      console.log('Name is required to join the game.');
-    }
+    socket.emit('playerJoin', name);
   };
 
   return (

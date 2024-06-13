@@ -1,12 +1,32 @@
 import React, { useEffect, useRef, useCallback } from 'react';
 import { Socket } from 'socket.io-client';
 import { Player } from '../../../../types';
-import { getOrdinalSuffix, throttle } from '../../utils';
+import { getOrdinalSuffix } from '../../utils';
+import {
+  CANVAS_WIDTH,
+  CANVAS_HEIGHT,
+  PLAYER_SIZE,
+  STEP,
+} from './gameConstants';
+import {
+  throttle,
+  checkHorizontalCollision,
+  checkVerticalCollision,
+  normalizeMovement,
+} from './gameUtils';
 
-const CANVAS_WIDTH = 400;
-const CANVAS_HEIGHT = 400;
-const PLAYER_SIZE = 10;
-const STEP = 3;
+interface Obstacle {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+const obstacles: Obstacle[] = [
+  // { x: 100, y: 100, width: 50, height: 50 },
+  // { x: 200, y: 200, width: 50, height: 50 },
+  // Add more obstacles as needed
+];
 
 interface GameCanvasProps {
   socket: Socket;
@@ -43,6 +63,12 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
 
       ctx.fillStyle = 'red';
       ctx.fillRect(0, 0, CANVAS_WIDTH, 10);
+
+      // Draw obstacles
+      ctx.fillStyle = 'gray';
+      obstacles.forEach((obstacle) => {
+        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
+      });
 
       leaderboard.forEach((player, index) => {
         ctx.fillStyle = player.id === socket.id ? 'blue' : 'red';
@@ -85,23 +111,43 @@ const GameCanvas: React.FC<GameCanvasProps> = ({
         if (keysPressed.current['ArrowLeft']) dx -= STEP;
         if (keysPressed.current['ArrowRight']) dx += STEP;
 
+        // Normalize movement for diagonal direction
+        const normalizedMovement = normalizeMovement(dx, dy, STEP);
+        dx = normalizedMovement.dx;
+        dy = normalizedMovement.dy;
+
         const canvas = canvasRef.current;
         if (canvas) {
           const player = playersRef.current.find((p) => p.id === socket.id);
           if (player) {
-            if (player.x + dx < 0 || player.x + dx > CANVAS_WIDTH - PLAYER_SIZE)
-              dx = 0;
-            if (
-              player.y + dy < 0 ||
-              player.y + dy > CANVAS_HEIGHT - PLAYER_SIZE
-            )
-              dy = 0;
-          }
-        }
+            let newX = player.x + dx;
+            let newY = player.y + dy;
 
-        if (dx !== 0 || dy !== 0) {
-          throttledPlayerMove(dx, dy);
-          lastMove = timestamp;
+            // Check for boundary collisions
+            if (newX < 0 || newX > CANVAS_WIDTH - PLAYER_SIZE) dx = 0;
+            if (newY < 0 || newY > CANVAS_HEIGHT - PLAYER_SIZE) dy = 0;
+
+            // Check for horizontal obstacle collisions
+            const { collides: horizontalCollides, newX: adjustedX } =
+              checkHorizontalCollision(newX, player.y, obstacles);
+            if (horizontalCollides) {
+              newX = adjustedX;
+              dx = newX - player.x;
+            }
+
+            // Check for vertical obstacle collisions
+            const { collides: verticalCollides, newY: adjustedY } =
+              checkVerticalCollision(player.x, newY, obstacles);
+            if (verticalCollides) {
+              newY = adjustedY;
+              dy = newY - player.y;
+            }
+
+            if (dx !== 0 || dy !== 0) {
+              throttledPlayerMove(dx, dy);
+              lastMove = timestamp;
+            }
+          }
         }
       }
       requestAnimationFrame(movePlayer);
