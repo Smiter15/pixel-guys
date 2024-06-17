@@ -4,8 +4,8 @@ import { Schema, type, ArraySchema } from '@colyseus/schema';
 class Player extends Schema {
   @type('string') id: string = '';
   @type('string') name: string = '';
-  @type('number') x: number = 190;
-  @type('number') y: number = 190;
+  @type('number') x: number = 290;
+  @type('number') y: number = 390;
 }
 
 export class MyRoom extends Room {

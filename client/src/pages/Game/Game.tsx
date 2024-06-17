@@ -1,5 +1,8 @@
-import React, { useEffect, useState, useMemo, useRef } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { Client, Room } from 'colyseus.js';
+import useInput from './components/useInput';
+import Canvas from './components/Canvas';
+import PlayerList from './components/PlayerList';
 
 import {
   CANVAS_WIDTH,
@@ -9,6 +12,7 @@ import {
   checkHorizontalCollision,
   checkVerticalCollision,
   normalizeMovement,
+  calculatePlayerRankings,
 } from './utils';
 
 import './Game.css';
@@ -28,13 +32,12 @@ const obstacles: Obstacle[] = [
 
 const Game: React.FC = () => {
   const [players, setPlayers] = useState<
-    { id: string; name: string; x: number; y: number }[]
+    { id: string; name: string; x: number; y: number; rank: number }[]
   >([]);
   const [name, setName] = useState<string>('');
   const [room, setRoom] = useState<Room | null>(null);
   const client = useMemo(() => new Client('ws://localhost:8000'), []);
-  const keysPressed = useRef<{ [key: string]: boolean }>({});
-  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const keysPressed = useInput();
 
   const joinRoom = async () => {
     if (!name) return alert('Please enter a name');
@@ -43,7 +46,13 @@ const Game: React.FC = () => {
       setRoom(newRoom);
 
       newRoom.onMessage('players', (players: any) => {
-        setPlayers(players);
+        const rankedPlayers = calculatePlayerRankings(players).map(
+          (player, index) => ({
+            ...player,
+            rank: index + 1,
+          })
+        );
+        setPlayers(rankedPlayers);
       });
 
       // Send player name only once after joining
@@ -51,14 +60,6 @@ const Game: React.FC = () => {
     } catch (error) {
       console.error('Failed to join room:', error);
     }
-  };
-
-  const handleKeyDown = (event: KeyboardEvent) => {
-    keysPressed.current[event.key] = true;
-  };
-
-  const handleKeyUp = (event: KeyboardEvent) => {
-    keysPressed.current[event.key] = false;
   };
 
   useEffect(() => {
@@ -107,49 +108,7 @@ const Game: React.FC = () => {
     }, 50); // Adjust the interval time as needed
 
     return () => clearInterval(interval);
-  }, [room, name, players]);
-
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    const ctx = canvas?.getContext('2d');
-
-    if (!canvas || !ctx) return;
-
-    const render = () => {
-      ctx.clearRect(0, 0, CANVAS_WIDTH, CANVAS_HEIGHT);
-
-      // Draw obstacles
-      ctx.fillStyle = 'gray';
-      obstacles.forEach((obstacle) => {
-        ctx.fillRect(obstacle.x, obstacle.y, obstacle.width, obstacle.height);
-      });
-
-      players.forEach((player) => {
-        ctx.fillStyle = player.name === name ? 'blue' : 'red';
-        ctx.fillRect(player.x, player.y, PLAYER_SIZE, PLAYER_SIZE);
-
-        // Draw player name
-        ctx.fillStyle = 'black';
-        ctx.font = '10px Arial';
-        ctx.textAlign = 'center';
-        ctx.fillText(player.name, player.x + PLAYER_SIZE / 2, player.y - 5);
-      });
-
-      requestAnimationFrame(render);
-    };
-
-    render();
-  }, [players, name]);
-
-  useEffect(() => {
-    window.addEventListener('keydown', handleKeyDown);
-    window.addEventListener('keyup', handleKeyUp);
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown);
-      window.removeEventListener('keyup', handleKeyUp);
-    };
-  }, []);
+  }, [room, name, players, keysPressed]);
 
   return (
     <div>
@@ -167,14 +126,8 @@ const Game: React.FC = () => {
       )}
       {room && (
         <div>
-          <canvas ref={canvasRef} width={CANVAS_WIDTH} height={CANVAS_HEIGHT} />
-          <ul>
-            {players.map((player, index) => (
-              <li key={index}>
-                {player.name} - Position: ({player.x}, {player.y})
-              </li>
-            ))}
-          </ul>
+          <Canvas players={players} name={name} obstacles={obstacles} />
+          <PlayerList players={players} />
         </div>
       )}
     </div>
