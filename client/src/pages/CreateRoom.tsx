@@ -1,15 +1,24 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import * as Colyseus from 'colyseus.js';
 
-const CreateRoom = () => {
+const client = new Colyseus.Client('ws://localhost:8000');
+
+const CreateRoom: React.FC = () => {
   const [roomName, setRoomName] = useState<string>('');
+  const [playerName, setPlayerName] = useState<string>('');
   const navigate = useNavigate();
 
-  const handleCreate = () => {
-    if (roomName.trim()) {
-      // Assuming the server generates a room ID
-      const roomId = '123'; // Replace this with the real room ID from the server
-      navigate(`/game/${roomId}`);
+  const handleCreate = async () => {
+    if (roomName.trim() && playerName.trim()) {
+      try {
+        const room = await client.create('my_room', { roomName, name: playerName });
+        navigate(`/game/${room.id}`);
+      } catch (error) {
+        console.error('Failed to create room:', error);
+      }
+    } else {
+      console.log('Room name and player name are required to create a room.');
     }
   };
 
@@ -21,6 +30,12 @@ const CreateRoom = () => {
         placeholder="Room Name"
         value={roomName}
         onChange={(e) => setRoomName(e.target.value)}
+      />
+      <input
+        type="text"
+        placeholder="Your Name"
+        value={playerName}
+        onChange={(e) => setPlayerName(e.target.value)}
       />
       <button onClick={handleCreate}>Create Room</button>
     </div>

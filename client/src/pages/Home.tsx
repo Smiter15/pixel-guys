@@ -1,6 +1,6 @@
 import { useNavigate } from 'react-router-dom';
 
-const Home = () => {
+const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const handleCreateRoom = () => {
@@ -8,7 +8,7 @@ const Home = () => {
   };
 
   const handleJoinRoom = () => {
-    // Implement join room logic
+    navigate('/join-room');
   };
 
   return (
