@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Client, Room } from 'colyseus.js';
+import { useLocation } from 'react-router-dom';
 import useInput from './components/useInput';
 import Canvas from './components/Canvas';
 import PlayerList from './components/PlayerList';
@@ -38,29 +39,43 @@ const Game: React.FC = () => {
   const [room, setRoom] = useState<Room | null>(null);
   const client = useMemo(() => new Client('ws://localhost:8000'), []);
   const keysPressed = useInput();
+  const location = useLocation();
 
-  const joinRoom = async () => {
-    if (!name) return alert('Please enter a name');
-    try {
-      const newRoom = await client.joinOrCreate('my_room', { name });
-      setRoom(newRoom);
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const roomId = params.get('roomId');
+    const playerName = params.get('name');
 
-      newRoom.onMessage('players', (players: any) => {
-        const rankedPlayers = calculatePlayerRankings(players).map(
-          (player, index) => ({
-            ...player,
-            rank: index + 1,
-          })
-        );
-        setPlayers(rankedPlayers);
-      });
-
-      // Send player name only once after joining
-      newRoom.send('addPlayer', { name });
-    } catch (error) {
-      console.error('Failed to join room:', error);
+    if (playerName) {
+      setName(playerName);
     }
-  };
+
+    if (roomId && playerName) {
+      const joinRoom = async () => {
+        try {
+          const newRoom = await client.joinById(roomId, { name: playerName });
+          setRoom(newRoom);
+
+          newRoom.onMessage('players', (players: any) => {
+            const rankedPlayers = calculatePlayerRankings(players).map(
+              (player, index) => ({
+                ...player,
+                rank: index + 1,
+              })
+            );
+            setPlayers(rankedPlayers);
+          });
+
+          // Send player name only once after joining
+          newRoom.send('addPlayer', { name: playerName });
+        } catch (error) {
+          console.error('Failed to join room:', error);
+        }
+      };
+
+      joinRoom();
+    }
+  }, [location.search, client]);
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -105,7 +120,7 @@ const Game: React.FC = () => {
           room.send('move', { name, x: newX, y: newY });
         }
       }
-    }, 50); // Adjust the interval time as needed
+    }, 30);
 
     return () => clearInterval(interval);
   }, [room, name, players, keysPressed]);
@@ -115,13 +130,7 @@ const Game: React.FC = () => {
       <h1>Players in Room</h1>
       {!room && (
         <div>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter your name"
-          />
-          <button onClick={joinRoom}>Join Room</button>
+          <p>Loading...</p>
         </div>
       )}
       {room && (
