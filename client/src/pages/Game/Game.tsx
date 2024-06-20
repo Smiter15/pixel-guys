@@ -42,6 +42,7 @@ const Game: React.FC = () => {
   const [countdown, setCountdown] = useState<number | null>(null);
   const [raceStarted, setRaceStarted] = useState<boolean>(false);
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
+  const [raceAgain, setRaceAgain] = useState<boolean>(false);
   const [expectedPlayers, setExpectedPlayers] = useState<number>(0);
   const client = useMemo(() => new Client('ws://localhost:8000'), []);
   const keysPressed = useInput();
@@ -81,6 +82,7 @@ const Game: React.FC = () => {
           });
 
           newRoom.onMessage('raceStarted', () => {
+            setRaceAgain(false);
             setRaceStarted(true);
             setCountdown(null);
           });
@@ -116,6 +118,9 @@ const Game: React.FC = () => {
       if (dx !== 0 || dy !== 0) {
         const player = players.find((p) => p.name === name);
         if (player) {
+          // Prevent movement if the player has finished the race
+          if (player.finishTime > 0) return;
+
           let newX = player.x + dx;
           let newY = player.y + dy;
 
@@ -148,6 +153,16 @@ const Game: React.FC = () => {
     return () => clearInterval(interval);
   }, [room, name, players, keysPressed, raceStarted, raceFinished]);
 
+  const handlePlayAgain = () => {
+    if (room) {
+      setCountdown(null);
+      setRaceFinished(false);
+      setRaceStarted(false);
+      setRaceAgain(true);
+      room.send('playAgain');
+    }
+  };
+
   return (
     <div>
       {!room && (
@@ -160,6 +175,7 @@ const Game: React.FC = () => {
         <div>
           {!raceStarted && (
             <>
+              <h1>Players in Room</h1>
               <WaitingRoom
                 players={players}
                 expectedPlayers={expectedPlayers}
@@ -180,6 +196,19 @@ const Game: React.FC = () => {
               <h2>Race Finished! Results:</h2>
               <PlayerList players={players} raceFinished={raceFinished} />
             </div>
+          )}
+
+          {raceFinished && !raceAgain && (
+            <button onClick={handlePlayAgain}>Play again</button>
+          )}
+
+          {!raceFinished && raceAgain && countdown === null && (
+            <>
+              <p>Waiting for all players to opt-in for a new game...</p>
+              <p>
+                {players.filter((p) => p.playAgain).length} / {players.length}
+              </p>
+            </>
           )}
         </div>
       )}

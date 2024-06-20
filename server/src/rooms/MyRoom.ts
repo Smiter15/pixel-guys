@@ -6,7 +6,8 @@ class Player extends Schema {
   @type('string') name: string = '';
   @type('number') x: number = 290;
   @type('number') y: number = 390;
-  @type('number') finishTime: number = 0; // Time taken to finish the race
+  @type('number') finishTime: number = 0;
+  @type('boolean') playAgain: boolean = false;
 }
 
 class RaceState extends Schema {
@@ -14,13 +15,13 @@ class RaceState extends Schema {
   @type('boolean') raceStarted: boolean = false;
   @type('boolean') raceFinished: boolean = false;
   @type([Player]) players = new ArraySchema<Player>();
-  @type('number') expectedPlayers: number = 0; // Number of expected players
+  @type('number') expectedPlayers: number = 0;
 }
 
 export class MyRoom extends Room<RaceState> {
   onCreate(options: any) {
     this.setState(new RaceState());
-    this.state.expectedPlayers = options.expectedPlayers || 2; // Default to 2 players if not provided
+    this.state.expectedPlayers = options.expectedPlayers;
 
     this.onMessage('addPlayer', (client, message) => {
       const player = new Player();
@@ -29,7 +30,6 @@ export class MyRoom extends Room<RaceState> {
       this.state.players.push(player);
       this.broadcast('players', this.state.players);
 
-      // Start countdown when all expected players have joined
       if (this.state.players.length === this.state.expectedPlayers) {
         this.startCountdown();
       }
@@ -46,7 +46,6 @@ export class MyRoom extends Room<RaceState> {
         // Check if player reached the finish line
         if (player.y <= 0) {
           if (player.finishTime === 0) {
-            console.log('finish time', Date.now() - this.state.countdown);
             player.finishTime = Date.now() - this.state.countdown;
           }
 
@@ -57,6 +56,15 @@ export class MyRoom extends Room<RaceState> {
         }
 
         this.broadcast('players', this.state.players);
+      }
+    });
+
+    this.onMessage('playAgain', (client, message) => {
+      const player = this.state.players.find((p) => p.id === client.sessionId);
+      if (player) {
+        player.playAgain = true;
+        this.broadcast('players', this.state.players);
+        this.checkPlayAgainReadiness();
       }
     });
   }
@@ -77,8 +85,27 @@ export class MyRoom extends Room<RaceState> {
   startRace() {
     this.state.raceStarted = true;
     this.state.countdown = Date.now();
-    console.log('start time', this.state.countdown);
     this.broadcast('raceStarted');
+  }
+
+  playAgain() {
+    this.state.raceStarted = false;
+    this.state.raceFinished = false;
+    this.state.countdown = 0;
+    this.state.players.forEach((player) => {
+      player.x = 290;
+      player.y = 390;
+      player.finishTime = 0;
+      player.playAgain = false;
+    });
+    this.broadcast('players', this.state.players);
+    this.startCountdown();
+  }
+
+  checkPlayAgainReadiness() {
+    if (this.state.players.every((player) => player.playAgain)) {
+      this.playAgain();
+    }
   }
 
   onJoin(client: Client, options: any) {

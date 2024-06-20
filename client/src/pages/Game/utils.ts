@@ -78,7 +78,12 @@ export const normalizeMovement = (
 };
 
 export const calculatePlayerRankings = (players: Player[]) => {
-  return players.sort((a, b) => a.y - b.y);
+  return players.sort((a, b) => {
+    if (a.y === b.y) {
+      return a.finishTime - b.finishTime; // Use finishTime to break ties
+    }
+    return a.y - b.y;
+  });
 };
 
 export const calculateFinalRankings = (players: Player[]) => {

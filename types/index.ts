@@ -5,4 +5,5 @@ export type Player = {
   name: string;
   finishTime: number;
   rank: number;
+  playAgain: boolean;
 };
