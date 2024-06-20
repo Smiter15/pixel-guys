@@ -1,9 +1,11 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { Client, Room } from 'colyseus.js';
 import { useLocation } from 'react-router-dom';
+
 import useInput from './components/useInput';
 import Canvas from './components/Canvas';
 import PlayerList from './components/PlayerList';
+import WaitingRoom from './components/WaitingRoom';
 
 import {
   CANVAS_WIDTH,
@@ -15,6 +17,8 @@ import {
   normalizeMovement,
   calculatePlayerRankings,
 } from './utils';
+
+import { Player } from '../../../../types';
 
 import './Game.css';
 
@@ -33,10 +37,21 @@ const obstacles: Obstacle[] = [
 
 const Game: React.FC = () => {
   const [players, setPlayers] = useState<
-    { id: string; name: string; x: number; y: number; rank: number }[]
+    {
+      id: string;
+      name: string;
+      x: number;
+      y: number;
+      rank: number;
+      finishTime: number;
+    }[]
   >([]);
   const [name, setName] = useState<string>('');
   const [room, setRoom] = useState<Room | null>(null);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const [raceStarted, setRaceStarted] = useState<boolean>(false);
+  const [raceFinished, setRaceFinished] = useState<boolean>(false);
+  const [expectedPlayers, setExpectedPlayers] = useState<number>(0);
   const client = useMemo(() => new Client('ws://localhost:8000'), []);
   const keysPressed = useInput();
   const location = useLocation();
@@ -66,6 +81,23 @@ const Game: React.FC = () => {
             setPlayers(rankedPlayers);
           });
 
+          newRoom.onMessage('expectedPlayers', (expectedPlayers: number) => {
+            setExpectedPlayers(expectedPlayers);
+          });
+
+          newRoom.onMessage('countdown', (countdown: number) => {
+            setCountdown(countdown);
+          });
+
+          newRoom.onMessage('raceStarted', () => {
+            setRaceStarted(true);
+            setCountdown(null);
+          });
+
+          newRoom.onMessage('raceFinished', (players: Player[]) => {
+            setRaceFinished(true);
+          });
+
           // Send player name only once after joining
           newRoom.send('addPlayer', { name: playerName });
         } catch (error) {
@@ -79,7 +111,7 @@ const Game: React.FC = () => {
 
   useEffect(() => {
     const interval = setInterval(() => {
-      if (!room || !name) return;
+      if (!room || !name || !raceStarted || raceFinished) return;
 
       let dx = 0,
         dy = 0;
@@ -120,10 +152,10 @@ const Game: React.FC = () => {
           room.send('move', { name, x: newX, y: newY });
         }
       }
-    }, 30);
+    }, 30); // Adjust the interval time as needed
 
     return () => clearInterval(interval);
-  }, [room, name, players, keysPressed]);
+  }, [room, name, players, keysPressed, raceStarted, raceFinished]);
 
   return (
     <div>
@@ -133,10 +165,32 @@ const Game: React.FC = () => {
           <p>Loading...</p>
         </div>
       )}
+
       {room && (
         <div>
-          <Canvas players={players} name={name} obstacles={obstacles} />
-          <PlayerList players={players} />
+          {!raceStarted && (
+            <>
+              <WaitingRoom
+                players={players}
+                expectedPlayers={expectedPlayers}
+              />
+              {countdown !== null && <h2>Race starts in: {countdown}</h2>}
+            </>
+          )}
+
+          {raceStarted && !raceFinished && (
+            <>
+              <Canvas players={players} name={name} obstacles={obstacles} />
+              <PlayerList players={players} />
+            </>
+          )}
+
+          {raceFinished && (
+            <div>
+              <h2>Race Finished! Results:</h2>
+              <PlayerList players={players} raceFinished={raceFinished} />
+            </div>
+          )}
         </div>
       )}
     </div>

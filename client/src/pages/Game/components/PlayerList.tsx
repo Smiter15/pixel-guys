@@ -1,20 +1,26 @@
 import React from 'react';
 
-import { getOrdinalSuffix } from '../utils';
+import { calculateFinalRankings, getOrdinalSuffix } from '../utils';
 
-interface Player {
-  id: string;
-  name: string;
-  x: number;
-  y: number;
-  rank: number;
-}
+import { Player } from '../../../../../types';
 
 interface PlayerListProps {
   players: Player[];
+  raceFinished?: boolean;
 }
 
-const PlayerList: React.FC<PlayerListProps> = ({ players }) => {
+const PlayerList: React.FC<PlayerListProps> = ({ players, raceFinished }) => {
+  if (raceFinished) {
+    const rankedPlayers = calculateFinalRankings(players).map(
+      (player, index) => ({
+        ...player,
+        rank: index + 1,
+      })
+    );
+
+    players = rankedPlayers;
+  }
+
   return (
     <ul>
       {players.map((player, index) => (

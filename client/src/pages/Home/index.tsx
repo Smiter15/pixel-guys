@@ -7,6 +7,7 @@ axios.defaults.baseURL = 'http://localhost:8000';
 const HomePage: React.FC = () => {
   const [name, setName] = useState('');
   const [roomId, setRoomId] = useState('');
+  const [expectedPlayers, setExpectedPlayers] = useState(2); // Default to 2 players
   const navigate = useNavigate();
 
   const handleCreateGame = async () => {
@@ -15,7 +16,7 @@ const HomePage: React.FC = () => {
       return;
     }
     try {
-      const response = await axios.get('/create-room');
+      const response = await axios.post('/create-room', { expectedPlayers });
       const { roomId } = response.data;
       navigate(`/game?roomId=${roomId}&name=${name}`);
     } catch (error) {
@@ -52,16 +53,23 @@ const HomePage: React.FC = () => {
         onChange={(e) => setName(e.target.value)}
         placeholder="Enter your name"
       />
-      <br />
-      <button onClick={handleCreateGame}>Create Game</button>
-      <br />
       <input
-        type="text"
-        value={roomId}
-        onChange={(e) => setRoomId(e.target.value)}
-        placeholder="Enter Room ID"
+        type="number"
+        value={expectedPlayers}
+        onChange={(e) => setExpectedPlayers(parseInt(e.target.value))}
+        placeholder="Number of Players"
+        min="2"
       />
-      <button onClick={handleJoinGame}>Join Game</button>
+      <button onClick={handleCreateGame}>Create Game</button>
+      <div>
+        <input
+          type="text"
+          value={roomId}
+          onChange={(e) => setRoomId(e.target.value)}
+          placeholder="Enter Room ID"
+        />
+        <button onClick={handleJoinGame}>Join Game</button>
+      </div>
     </div>
   );
 };

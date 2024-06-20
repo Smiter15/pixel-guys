@@ -2,6 +2,7 @@ import { Server, matchMaker } from 'colyseus';
 import { createServer } from 'http';
 import express from 'express';
 import cors from 'cors';
+
 import { MyRoom } from './rooms/MyRoom';
 
 const app = express();
@@ -13,9 +14,12 @@ const gameServer = new Server({
   server: createServer(app),
 });
 
-app.get('/create-room', async (req, res) => {
+app.use(express.json());
+
+app.post('/create-room', async (req, res) => {
   try {
-    const room = await matchMaker.createRoom('my_room', {});
+    const { expectedPlayers } = req.body;
+    const room = await matchMaker.createRoom('my_room', { expectedPlayers });
     res.send({ roomId: room.roomId });
   } catch (error) {
     console.error('Error creating room:', error);

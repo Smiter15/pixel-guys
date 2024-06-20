@@ -1,3 +1,5 @@
+import { Player } from '../../../../types';
+
 export const CANVAS_WIDTH = 600;
 export const CANVAS_HEIGHT = 400;
 export const PLAYER_SIZE = 10;
@@ -75,10 +77,12 @@ export const normalizeMovement = (
   return { dx, dy };
 };
 
-export const calculatePlayerRankings = (
-  players: { id: string; name: string; x: number; y: number }[]
-) => {
-  return players.slice().sort((a, b) => a.y - b.y);
+export const calculatePlayerRankings = (players: Player[]) => {
+  return players.sort((a, b) => a.y - b.y);
+};
+
+export const calculateFinalRankings = (players: Player[]) => {
+  return players.sort((a, b) => a.finishTime - b.finishTime);
 };
 
 export const getOrdinalSuffix = (i: number) => {
