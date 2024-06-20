@@ -36,16 +36,7 @@ const obstacles: Obstacle[] = [
 ];
 
 const Game: React.FC = () => {
-  const [players, setPlayers] = useState<
-    {
-      id: string;
-      name: string;
-      x: number;
-      y: number;
-      rank: number;
-      finishTime: number;
-    }[]
-  >([]);
+  const [players, setPlayers] = useState<Player[]>([]);
   const [name, setName] = useState<string>('');
   const [room, setRoom] = useState<Room | null>(null);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -71,7 +62,7 @@ const Game: React.FC = () => {
           const newRoom = await client.joinById(roomId, { name: playerName });
           setRoom(newRoom);
 
-          newRoom.onMessage('players', (players: any) => {
+          newRoom.onMessage('players', (players: Player[]) => {
             const rankedPlayers = calculatePlayerRankings(players).map(
               (player, index) => ({
                 ...player,
@@ -159,7 +150,6 @@ const Game: React.FC = () => {
 
   return (
     <div>
-      <h1>Players in Room</h1>
       {!room && (
         <div>
           <p>Loading...</p>

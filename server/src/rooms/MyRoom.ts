@@ -62,7 +62,7 @@ export class MyRoom extends Room<RaceState> {
   }
 
   startCountdown() {
-    this.state.countdown = 5; // 5 seconds countdown
+    this.state.countdown = 4;
     const countdownInterval = setInterval(() => {
       this.state.countdown -= 1;
       this.broadcast('countdown', this.state.countdown);
