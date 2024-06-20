@@ -44,9 +44,13 @@ const Game: React.FC = () => {
   const [raceFinished, setRaceFinished] = useState<boolean>(false);
   const [raceAgain, setRaceAgain] = useState<boolean>(false);
   const [expectedPlayers, setExpectedPlayers] = useState<number>(0);
-  const client = useMemo(() => new Client('ws://localhost:8000'), []);
   const keysPressed = useInput();
   const location = useLocation();
+
+  const client = useMemo(
+    () => new Client(process.env.REACT_APP_COLYSEUS_URL),
+    []
+  );
 
   useEffect(() => {
     const params = new URLSearchParams(location.search);

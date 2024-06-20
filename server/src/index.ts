@@ -41,4 +41,4 @@ app.get('/join-room/:roomId', async (req, res) => {
 gameServer.define('my_room', MyRoom);
 
 gameServer.listen(port);
-console.log(`Listening on ws://localhost:${port}`);
+console.log('Colysesus server started');
