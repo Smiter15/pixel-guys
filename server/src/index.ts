@@ -6,7 +6,7 @@ import cors from 'cors';
 import { MyRoom } from './rooms/MyRoom';
 
 const app = express();
-const port = parseInt(process.env.PORT || '8000', 10);
+const port = 8000;
 
 app.use(cors());
 
@@ -40,4 +40,5 @@ app.get('/join-room/:roomId', async (req, res) => {
 
 gameServer.define('my_room', MyRoom);
 
-gameServer.listen(port, '0.0.0.0');
+gameServer.listen(port);
+console.log('Colysesus server started');
